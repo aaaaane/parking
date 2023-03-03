@@ -86,7 +86,7 @@ class DataPersistHelper
         return $parking;
     }
 
-    public function storeParking(Parking $parking): bool
+    private function storeParking(Parking $parking): bool
     {
         return apcu_store($this::PARKING, $parking);
     }
