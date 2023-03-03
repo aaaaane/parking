@@ -1,28 +1,45 @@
 # Temper.works backend coding challenge
 
+## What is it about?
+This project is about to build an application based on an API for a parking.
 
-**Non-functional requirements:**<br>
-- should be written in OOP PHP
-- no database connection is needed, use memory
-- the program should be able to run and see if requirements are implemented (up to you how you want to do that)
-- keep it simple (no autoloaders, no frameworks, etc).
-- add a readme.md file:
+The user is able to park and unpark a vehicle. If the parking is full the user receives a message saying that no spots are available.
 
-Of course, you will have to make some assumptions, please state your assumptions clearly in the Readme.md file
-indicate how the program should be run in Readme.md file
-any other indications you think the code reviewers will find helpful
+## Chosen architecture
+The architecture chosen for developing this project is the **Hexagonal** one.
 
-**Tips:**<br>
-- As with anything in software you need to strike a balance between extensibility/maintainability/time-spent (cost). So design the application in such a way that you can add more functionality on top of it. We will add more functionality during the interview.
-- If you want to deviate from the non-functional requirements from above it’s fine, but keep in mind the time you want to spend on this (should not be more than ~1h). If do deviate please add inside Readme.md reasons for the deviation to provide insights in why you chose to go that way.
+*Why did I make this choice?*
+The answer is pretty easy; it respects the S.O.L.I.D. principles and allows to separate the different layers of the application.
 
-### Machine Requirements
-For this challenge to run you'll have to have Docker running or have PHP running locally on your machine.
-This README assumes you're using Docker to run the challenge. 
+I've structured my project using different *adapters* for the *driving side* to communicate via *ports* with the *application*, and *ports on the application* that communicate with the *driven side* via *ports on the application* isolating the *domain* of the application.
 
-1. Start the Docker containers;
-`docker compose up -d`
-2. Run your tests; `docker compose exec app vendor/bin/phpunit .` 
-3. Stop the docker containers; `docker compose down`
+![img.png](img.png)
 
-Without further ado; Good luck with the challenge and even more important; HAVE FUN! 
+As a primary adapter I created one controller (`Adapters/Controllers/ParkingController.php`) that gets and manages every different request for performing the allowed actions.
+
+This controller instantiates every service and calls the method on them for doing the desired action. In every function I made a validation of the input data from the `request` for making sure no incorrect data is introduced. If the data type doesn't match the desired one it throws an `exception`.
+
+`ParkingController` calls the function on the service passing a `DTO` with the desired data for assure scalability and *guarding the data types*. It uses the secondary adapter (`Adapters/Repositories/DataPersistHelper.php`) for performing the desired actions on the external actors (driven side); in this case would be persisting the data on the cache.
+
+Once the desired actions are done, the service returns the desired data for the controller, isolating completely the `Domain` part of the application.
+
+## Tests
+Tests can be found on the `Tests` folder. I only tested the services for making sure they do the desired actions.
+
+For running them run `docker compose exec app vendor/bin/phpunit tests`
+
+## Running the project
+First of all we need to open a terminal and go until the root of the project. Once there run:
+`docker compose up -d`. Two containers will get mounted and initialized (one for PHP, one for nginx).
+
+To install the project requirements via composer execute the terminal of the `app` container and run `composer install`
+
+For parking a vehicle inside the parking, make a POST cURL request to `http://127.0.0.1:8080/api/park/{license_plate}` changing `{license_plate}` with a string.
+For unparking a vehicle from the parking, make a POST cURL request to `http://127.0.0.1:8080/api/unpark/{license_plate}` changing `{license_plate}` with a string.
+
+## Decisions
+As no many requirements were asked I had to make some assumptions:
+
+- The parking has only one level, this level has 10 parking spots.
+- In the parking only cars can park.
+
